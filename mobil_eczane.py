@@ -5,7 +5,7 @@ import pytz  # Sunucu saat farkını çözmek için eklediğimiz kütüphane
 
 # --- YAPILANDIRMA ---
 # Buraya CollectAPI'den aldığın API Key'i yapıştır
-API_KEY = "BURAYA_API_KEY_YAPISTIR" 
+API_KEY = "apikey 0dioS4p4XYI5k184fEWJgv:3Z4WWAqncvGBtJFoPreWVY" 
 
 # 1. Sayfa Ayarları ve Tema Yapılandırması
 st.set_page_config(page_title="Eczane Pro", page_icon="💊", layout="centered")
