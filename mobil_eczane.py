@@ -1,22 +1,23 @@
 import streamlit as st
 import requests
 from datetime import datetime
+import pytz  # Sunucu saat farkını çözmek için eklediğimiz kütüphane
 
 # --- YAPILANDIRMA ---
 # Buraya CollectAPI'den aldığın API Key'i yapıştır
-API_KEY = "apikey 0dioS4p4XYI5k184fEWJgv:3Z4WWAqncvGBtJFoPreWVY" 
+API_KEY = "BURAYA_API_KEY_YAPISTIR" 
 
-# 1. Sayfa Ayarları ve Tema
+# 1. Sayfa Ayarları ve Tema Yapılandırması
 st.set_page_config(page_title="Eczane Pro", page_icon="💊", layout="centered")
 
 st.markdown("""
     <style>
-    /* Antrasit / Gri-Siyah Tema */
+    /* Antrasit / Gri-Siyah Arka Plan */
     .stApp {
         background-color: #121212;
         color: #cfcfcf;
     }
-    /* Kart Tasarımları */
+    /* Eczane Kart Tasarımları */
     .eczane-card {
         background-color: #1e1e1e;
         padding: 20px;
@@ -28,7 +29,7 @@ st.markdown("""
     .eczane-baslik { color: #ffffff; font-size: 20px; font-weight: bold; }
     .eczane-detay { color: #aaaaaa; font-size: 14px; margin-top: 5px; }
     
-    /* Sağ Alt İmza ve Saat */
+    /* Sağ Alt Köşedeki Sabit İmza ve Saat Alanı */
     .fixed-footer {
         position: fixed;
         bottom: 15px;
@@ -42,7 +43,7 @@ st.markdown("""
         border-radius: 8px;
         z-index: 1000;
     }
-    /* Input ve Selectbox düzenlemeleri */
+    /* Seçim kutularının renk ayarları */
     div[data-baseweb="select"] > div {
         background-color: #262626 !important;
         border: 1px solid #333 !important;
@@ -50,7 +51,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 2. Yardımcı Fonksiyonlar (API Bağlantısı)
+# 2. Yardımcı Fonksiyon (API'den Veri Çekme)
 def veri_cek(endpoint, params={}):
     headers = {
         'authorization': f"apikey {API_KEY}",
@@ -62,8 +63,11 @@ def veri_cek(endpoint, params={}):
         return response.json()
     return None
 
-# 3. Sidebar / Sabit İmza Alanı
-simdi = datetime.now().strftime("%d.%m.%Y | %H:%M")
+# 3. TÜRKİYE SAAT DİLİMİ AYARI (Tarih Hatasını Çözen Kısım)
+tr_saat_dilimi = pytz.timezone('Europe/Istanbul')
+simdi = datetime.now(tr_saat_dilimi).strftime("%d.%m.%Y | %H:%M")
+
+# Sabit İmza Ekranı
 st.markdown(f"""
     <div class="fixed-footer">
         {simdi}<br>
@@ -71,19 +75,20 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# 4. Ana Uygulama Arayüzü
+# 4. Ana Uygulama Başlığı
 st.title("🏥 Nöbetçi Eczane Sistemi")
 
-# Şehir Listesi
+# Alfabetik Türkiye İlleri Listesi
 iller = ["Adana", "Adıyaman", "Afyon", "Ağrı", "Amasya", "Ankara", "Antalya", "Artvin", "Aydın", "Balıkesir", "Bilecik", "Bingöl", "Bitlis", "Bolu", "Burdur", "Bursa", "Çanakkale", "Çankırı", "Çorum", "Denizli", "Diyarbakır", "Edirne", "Elazığ", "Erzincan", "Erzurum", "Eskişehir", "Gaziantep", "Giresun", "Gümüşhane", "Hakkari", "Hatay", "Isparta", "İçel", "İstanbul", "İzmir", "Kars", "Kastamonu", "Kayseri", "Kırklareli", "Kırşehir", "Kocaeli", "Konya", "Kütahya", "Malatya", "Manisa", "Kahramanmaraş", "Mardin", "Muğla", "Muş", "Nevşehir", "Niğde", "Ordu", "Rize", "Sakarya", "Samsun", "Siirt", "Sinop", "Sivas", "Tekirdağ", "Tokat", "Trabzon", "Tunceli", "Şanlıurfa", "Uşak", "Van", "Yozgat", "Zonguldak", "Aksaray", "Bayburt", "Karaman", "Kırıkkale", "Batman", "Şırnak", "Bartın", "Ardahan", "Iğdır", "Yalova", "Karabük", "Kilis", "Osmaniye", "Düzce"]
 iller.sort()
 
+# Yan yana iki kolon oluşturuyoruz (İl ve İlçe için)
 col1, col2 = st.columns(2)
 
 with col1:
     secilen_il = st.selectbox("Şehir Seçin:", iller)
 
-# Dinamik İlçe Getirme
+# Seçilen ile göre API'den otomatik ilçe listesi çekme
 ilce_listesi = []
 with st.spinner("İlçeler yükleniyor..."):
     res_ilce = veri_cek("districtList", {"il": secilen_il})
@@ -93,6 +98,7 @@ with st.spinner("İlçeler yükleniyor..."):
 with col2:
     secilen_ilce = st.selectbox("İlçe Seçin (Opsiyonel):", ["Tümü"] + ilce_listesi)
 
+# Sorgulama Butonu
 if st.button("Eczaneleri Sorgula", use_container_width=True):
     params = {"il": secilen_il}
     if secilen_ilce != "Tümü":
@@ -113,8 +119,8 @@ if st.button("Eczaneleri Sorgula", use_container_width=True):
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # Konum butonu (Google Maps linki)
+                # Google Haritalar Konum Linki
                 lat_lng = eczane['loc']
-                st.write(f"[🗺️ Haritada Göster](https://www.google.com/maps/search/?api=1&query={lat_lng})")
+                st.write(f"[🗺️ Haritada Göster](https://maps.google.com/?q={lat_lng})")
         else:
-            status.update(label="Bir hata oluştu veya bu bölgede kayıt bulunamadı.", state="error")
+            status.update(label="Bir hata oluştu veya veri çekilemedi. Lütfen API anahtarınızı kontrol edin.", state="error")
