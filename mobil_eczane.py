@@ -12,7 +12,7 @@ st.set_page_config(
     layout="centered"
 )
 
-API_KEY = "BURAYA_API_KEY_YAPISTIR" 
+API_KEY = "apikey 0dioS4p4XYI5k184fEWJgv:3Z4WWAqncvGBtJFoPreWVY" 
 
 # --- MODERN TASARIM (CSS) ---
 st.markdown("""
