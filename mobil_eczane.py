@@ -2,108 +2,121 @@ import streamlit as st
 import requests
 from datetime import datetime
 import pytz
+import urllib.parse
 
-# --- AYARLAR ---
-API_KEY = "apikey 0dioS4p4XYI5k184fEWJgv:3Z4WWAqncvGBtJFoPreWVY" # CollectAPI Key'ini buraya yaz
+# --- PRO YAPILANDIRMA ---
+# icon.png dosyasını hem sekme ikonu hem de uygulama ikonu olarak tanımlıyoruz
+st.set_page_config(
+    page_title="Eczane Pro", 
+    page_icon="icon.png", # GitHub'daki logonun adı
+    layout="centered"
+)
 
-st.set_page_config(page_title="Eczane Pro v2", page_icon="💊", layout="centered")
+API_KEY = "BURAYA_API_KEY_YAPISTIR" 
 
-# --- GELİŞMİŞ TASARIM (CSS) ---
+# --- MODERN TASARIM (CSS) ---
 st.markdown("""
     <style>
-    .stApp { background-color: #0f0f0f; color: #e0e0e0; }
+    .stApp { background-color: #0d0d0d; color: #e0e0e0; }
     
-    /* Eczane Kartı */
+    /* Eczane Kartı Tasarımı */
     .pro-card {
-        background: linear-gradient(145deg, #1a1a1a, #121212);
-        border-radius: 15px;
+        background: #181818;
+        border-radius: 12px;
         padding: 20px;
         margin-bottom: 20px;
-        border: 1px solid #333;
-        box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
+        border-left: 5px solid #800020; /* Bordo Vurgu */
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     }
     
-    .title-text { color: #ffffff; font-size: 22px; font-weight: 800; margin-bottom: 10px; }
-    .info-text { color: #b0b0b0; font-size: 14px; margin-bottom: 5px; display: flex; align-items: center; }
+    .title-text { color: #ffffff; font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+    .info-text { color: #b0b0b0; font-size: 14px; margin-bottom: 5px; }
     
-    /* Profesyonel Butonlar */
-    .button-container { display: flex; gap: 10px; margin-top: 15px; }
+    /* Profesyonel Buton Grubu */
+    .btn-container { display: flex; gap: 10px; margin-top: 15px; }
     
-    .btn {
+    .btn-custom {
         flex: 1;
         text-align: center;
-        padding: 10px;
+        padding: 12px;
         border-radius: 8px;
         text-decoration: none;
-        font-weight: bold;
+        font-weight: 600;
         font-size: 14px;
+        color: white !important;
         transition: 0.3s;
     }
     
-    .btn-call { background-color: #1e3a2f; color: #4ade80; border: 1px solid #4ade80; }
-    .btn-map { background-color: #3b1e1e; color: #fb7185; border: 1px solid #fb7185; }
+    .bg-green { background-color: #1b4332; border: 1px solid #2d6a4f; }
+    .bg-red { background-color: #432818; border: 1px solid #603808; }
+    .bg-blue { background-color: #1a3a4a; border: 1px solid #2a5a7a; }
     
-    /* İmza Alanı */
+    /* Sabit Alt Bilgi */
     .footer {
         position: fixed;
         bottom: 10px;
-        right: 15px;
-        font-size: 11px;
+        right: 20px;
+        font-size: 12px;
         color: #555;
         text-align: right;
+        background: rgba(13, 13, 13, 0.8);
+        padding: 5px;
+        border-radius: 5px;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- SAAT VE İMZA ---
+# --- TÜRKİYE SAATİ VE İMZA ---
 tr_tz = pytz.timezone('Europe/Istanbul')
-current_time = datetime.now(tr_tz).strftime("%H:%M | %d.%m.%Y")
+zaman = datetime.now(tr_tz).strftime("%H:%M | %d.%m.%Y")
 
-st.markdown(f"""<div class="footer">{current_time}<br><b>Mir Bedirhan Önverdi</b></div>""", unsafe_allow_html=True)
+st.markdown(f"""<div class="footer">{zaman}<br><b>Mir Bedirhan Önverdi</b></div>""", unsafe_allow_html=True)
 
 # --- BAŞLIK ---
-st.markdown("<h1 style='text-align: center; color: white;'>💊 ECZANE PRO</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #888;'>81 İlde Anlık Nöbetçi Eczaneler</p>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: white;'>🏥 ECZANE PRO</h1>", unsafe_allow_html=True)
 
-# --- VERİ ÇEKME ---
-def get_data(endpoint, params):
+# --- FONKSİYONLAR ---
+def veri_getir(endpoint, params):
     url = f"https://api.collectapi.com/health/{endpoint}"
     headers = {'authorization': f"apikey {API_KEY}", 'content-type': "application/json"}
     return requests.get(url, headers=headers, params=params).json()
 
-# --- ŞEHİR SEÇİMİ ---
+# --- ŞEHİR / İLÇE SEÇİMİ ---
 iller = ["Adana", "Adıyaman", "Afyon", "Ağrı", "Amasya", "Ankara", "Antalya", "Artvin", "Aydın", "Balıkesir", "Bilecik", "Bingöl", "Bitlis", "Bolu", "Burdur", "Bursa", "Çanakkale", "Çankırı", "Çorum", "Denizli", "Diyarbakır", "Edirne", "Elazığ", "Erzincan", "Erzurum", "Eskişehir", "Gaziantep", "Giresun", "Gümüşhane", "Hakkari", "Hatay", "Isparta", "İçel", "İstanbul", "İzmir", "Kars", "Kastamonu", "Kayseri", "Kırklareli", "Kırşehir", "Kocaeli", "Konya", "Kütahya", "Malatya", "Manisa", "Kahramanmaraş", "Mardin", "Muğla", "Muş", "Nevşehir", "Niğde", "Ordu", "Rize", "Sakarya", "Samsun", "Siirt", "Sinop", "Sivas", "Tekirdağ", "Tokat", "Trabzon", "Tunceli", "Şanlıurfa", "Uşak", "Van", "Yozgat", "Zonguldak", "Aksaray", "Bayburt", "Karaman", "Kırıkkale", "Batman", "Şırnak", "Bartın", "Ardahan", "Iğdır", "Yalova", "Karabük", "Kilis", "Osmaniye", "Düzce"]
 iller.sort()
 
 c1, c2 = st.columns(2)
 with c1:
-    il = st.selectbox("Şehir", iller)
+    secilen_il = st.selectbox("Şehir", iller)
 with c2:
-    dist_data = get_data("districtList", {"il": il})
-    ilceler = [d["text"] for d in dist_data["result"]] if dist_data.get("success") else []
-    ilce = st.selectbox("İlçe (Tümü)", ["Tümü"] + ilceler)
+    dist_res = veri_getir("districtList", {"il": secilen_il})
+    ilceler = [d["text"] for d in dist_res["result"]] if dist_res.get("success") else []
+    secilen_ilce = st.selectbox("İlçe", ["Tümü"] + ilceler)
 
-if st.button("Eczaneleri Bul", use_container_width=True):
-    query = {"il": il}
-    if ilce != "Tümü": query["ilce"] = ilce
+if st.button("🔍 Nöbetçi Eczaneleri Sorgula", use_container_width=True):
+    p = {"il": secilen_il}
+    if secilen_ilce != "Tümü": p["ilce"] = secilen_ilce
     
-    with st.spinner("Veriler getiriliyor..."):
-        res = get_data("dutyPharmacy", query)
+    with st.spinner("Güncel veriler alınıyor..."):
+        res = veri_getir("dutyPharmacy", p)
         if res.get("success"):
             for e in res["result"]:
-                # Telefon formatını temizle
-                clean_phone = e['phone'].replace(" ", "").replace("(", "").replace(")", "").replace("-", "")
+                tel = e['phone'].replace(" ", "").replace("(", "").replace(")", "").replace("-", "")
+                mesaj = f"{e['name']} Eczanesi\n📍 {e['address']}\n📞 {e['phone']}"
+                wp_link = f"https://wa.me/?text={urllib.parse.quote(mesaj)}"
                 
                 st.markdown(f"""
                 <div class="pro-card">
-                    <div class="title-text">🏥 {e['name']}</div>
-                    <div class="info-text">📍 {e['dist']} / {e['address']}</div>
-                    <div class="info-text">📞 {e['phone']}</div>
-                    <div class="button-container">
-                        <a href="tel:{clean_phone}" class="btn btn-call">📞 Hemen Ara</a>
-                        <a href="https://www.google.com/maps/search/?api=1&query={e['name']}+{e['address']}" target="_blank" class="btn btn-map">🗺️ Yol Tarifi</a>
+                    <div class="title-text">{e['name']}</div>
+                    <div class="info-text"><b>İlçe:</b> {e['dist']}</div>
+                    <div class="info-text"><b>Adres:</b> {e['address']}</div>
+                    <div class="info-text"><b>Telefon:</b> {e['phone']}</div>
+                    <div class="btn-container">
+                        <a href="tel:{tel}" class="btn-custom bg-green">📞 Ara</a>
+                        <a href="http://maps.google.com/?q={e['name']}+{e['address']}" target="_blank" class="btn-custom bg-red">🗺️ Yol Tarifi</a>
+                        <a href="{wp_link}" target="_blank" class="btn-custom bg-blue">💬 Paylaş</a>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
         else:
-            st.error("Bir sorun oluştu. Lütfen tekrar deneyin.")
+            st.error("Veri çekilemedi, lütfen API anahtarınızı kontrol edin.")
